@@ -1,3 +1,4 @@
+import { buildModel, projectMap } from "markdown-patch-2";
 import fs from "fs";
 import path from "path";
 import { App, TFile, _prepareSimpleSearchMock } from "../mocks/obsidian";
@@ -481,5 +482,50 @@ describe("Obsidian's declared event surface", () => {
 
   test("the cache is invalidated by every vault event", () => {
     expect([...VAULT_EVENTS].sort()).toEqual(declaredEvents("Vault"));
+  });
+});
+
+
+describe("atomic markdown-patch 2 optimistic concurrency", () => {
+  const before = "---\nmcp_smoke: before\n---\n\n# Target\noriginal\n";
+  const newer = before.replace("before", "manually_changed");
+  const instruction = {
+    targetType: "frontmatter" as const,
+    target: "mcp_smoke",
+    operation: "replace" as const,
+    scope: "content" as const,
+    value: "after",
+    ifMatch: projectMap(buildModel(before)).version,
+  };
+
+  test("checks the version inside process and preserves an interleaved edit", async () => {
+    const { app, ops } = setup(before);
+    const read = jest.spyOn(app.vault, "read").mockImplementation(async () => {
+      app.vault._read = newer;
+      return before;
+    });
+    const process = jest.spyOn(app.vault, "process").mockImplementation(async (file, fn) => {
+      app.vault._read = newer;
+      const next = fn(newer);
+      await app.vault.modify(file, next);
+      return next;
+    });
+    await expect(ops.patchFileSectionMdp2(MD_PATH, instruction)).rejects.toThrow(/ifMatch/);
+    expect(app.vault._read).toBe(newer);
+    expect(app.vault._modify).toBeUndefined();
+    expect(read).not.toHaveBeenCalled();
+    expect(process).toHaveBeenCalledTimes(1);
+  });
+
+  test("writes once with a current token and rejects its replay", async () => {
+    const { app, ops } = setup(before);
+    const process = jest.spyOn(app.vault, "process");
+    const modify = jest.spyOn(app.vault, "modify");
+    const result = await ops.patchFileSectionMdp2(MD_PATH, instruction);
+    expect(result.document).toBe(before.replace("before", "after"));
+    expect(app.vault._read).toBe(result.document);
+    await expect(ops.patchFileSectionMdp2(MD_PATH, instruction)).rejects.toThrow(/ifMatch/);
+    expect(process).toHaveBeenCalledTimes(2);
+    expect(modify).toHaveBeenCalledTimes(1);
   });
 });

@@ -631,6 +631,9 @@ export class McpHandler {
         // the engine's validation, and the OpenAPI `PatchInstruction` component
         // are all one definition and cannot drift.
         ...InstructionInputObjectSchema.shape,
+        ifMatch: InstructionInputObjectSchema.shape.ifMatch.describe(
+          "Document map version. Checked atomically with the write via Vault.process; continuity-atomic-ifmatch-v1.",
+        ),
       },
       { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
       async ({

@@ -695,9 +695,13 @@ export class VaultOperations {
     if (!(file instanceof TFile)) {
       throw new FileNotFoundError(`File not found: ${filePath}`);
     }
-    const fileContents = await this.app.vault.read(file);
-    const result = patchV2(fileContents, instruction);
-    await this.app.vault.modify(file, result.document);
+    // Evaluate ifMatch against the same contents that are atomically replaced.
+    // A separate read/modify pair can overwrite an edit made after validation.
+    let result!: PatchResult;
+    await this.app.vault.process(file, (current) => {
+      result = patchV2(current, instruction);
+      return result.document;
+    });
     return result;
   }
 

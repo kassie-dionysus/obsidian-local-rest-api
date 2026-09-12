@@ -541,3 +541,22 @@ describe("PATCH 2.0 — errors and routing", () => {
     expect((await res.json()).errorCode).toBe(40082);
   });
 });
+
+
+describe("atomic optimistic concurrency", () => {
+  test("a current map version patches once and its replay cannot overwrite a newer edit", async () => {
+    const mapResponse = await authedFetch(`/vault/${TEST_PATH}`, {
+      headers: { Accept: "application/vnd.olrapi.document-map+json" },
+    });
+    expect(mapResponse.status).toBe(200);
+    const { version } = await mapResponse.json() as { version: string };
+    expect(typeof version).toBe("string");
+    const instruction = { targetType: "frontmatter", target: FM_TITLE, operation: "replace", scope: "content", value: "after", ifMatch: version };
+    expect((await patchV2(instruction)).status).toBe(200);
+    const after = await (await authedFetch(`/vault/${TEST_PATH}`)).text();
+    expect(after).toContain("title: after");
+    await resetFixture(after.replace("title: after", "title: manually_changed"), TEST_PATH);
+    expect((await patchV2(instruction)).status).toBe(412);
+    expect(await (await authedFetch(`/vault/${TEST_PATH}`)).text()).toContain("title: manually_changed");
+  });
+});

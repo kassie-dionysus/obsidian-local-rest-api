@@ -94,6 +94,13 @@ export class Vault {
     this.adapter._write = [file.path, content];
   }
 
+  async process(file: TFile, fn: (current: string) => string): Promise<string> {
+    const next = fn(this._read);
+    this._read = next;
+    await this.modify(file, next);
+    return next;
+  }
+
   async createFolder(path: string): Promise<void> {
     this._createdFolders.push(path);
   }

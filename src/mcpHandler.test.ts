@@ -756,6 +756,13 @@ describe("McpHandler", () => {
 
   // ---- vault_patch --------------------------------------------------------
 
+  test("vault_patch advertises atomic ifMatch capability without making upstream ifMatch mandatory", () => {
+    const call = registerTool.mock.calls.find((c: unknown[]) => c[0] === "vault_patch");
+    const schema = call[1].inputSchema["~standard"].jsonSchema.input({ target: "draft-2020-12" });
+    expect(schema.properties.ifMatch.description).toContain("continuity-atomic-ifmatch-v1");
+    expect(schema.required).not.toContain("ifMatch");
+  });
+
   test("vault_patch builds a heading content instruction and calls patchFileSectionMdp2", async () => {
     const cb = getToolCallback("vault_patch");
     await cb({

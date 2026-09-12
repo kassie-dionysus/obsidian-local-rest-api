@@ -692,7 +692,7 @@ paths:
         
         ## Optimistic concurrency
         
-        Pass `ifMatch` with the `version` token from a document map (see below). If the file changed since, the patch fails with `412` and the file is untouched — refetch and retry.
+        Pass `ifMatch` with the `version` token from a document map (see below). If the file changed since, the patch fails with `412` and the file is untouched. Version validation and replacement run atomically inside Obsidian `Vault.process`, including edits made while the request is in flight. A conflict requires a fresh read and a new decision; the server never retries the write.
         
         ## Identifying patch targets in a file
         
@@ -2473,7 +2473,7 @@ paths:
         
         ## Optimistic concurrency
         
-        Pass `ifMatch` with the `version` token from a document map (see below). If the file changed since, the patch fails with `412` and the file is untouched — refetch and retry.
+        Pass `ifMatch` with the `version` token from a document map (see below). If the file changed since, the patch fails with `412` and the file is untouched. Version validation and replacement run atomically inside Obsidian `Vault.process`, including edits made while the request is in flight. A conflict requires a fresh read and a new decision; the server never retries the write.
         
         ## Identifying patch targets in a file
         

@@ -195,7 +195,7 @@ curl -k -X PATCH \
   https://127.0.0.1:27124/vault/path/to/note.md
 ```
 
-Heading levels inside a `content` string are relative to the target (a leading `#` becomes a direct child). Advisory warnings (e.g. a heading rebased past level 6) come back as percent-encoded JSON in the `Markdown-Patch-Warnings` response header — decode with `decodeURIComponent` before parsing. Pass `ifMatch` (the `version` from a document map) for optimistic concurrency.
+Heading levels inside a `content` string are relative to the target (a leading `#` becomes a direct child). Advisory warnings (e.g. a heading rebased past level 6) come back as percent-encoded JSON in the `Markdown-Patch-Warnings` response header — decode with `decodeURIComponent` before parsing. Pass `ifMatch` (the `version` from a document map) for optimistic concurrency. This fork checks the version and applies the change atomically with `Vault.process`; a stale token leaves the newer content untouched. Its live MCP `ifMatch` description advertises `continuity-atomic-ifmatch-v1`.
 
 > **Note:** Whitespace is library-owned — your content is reduced to trimmed, canonical form (leading and trailing blank lines are meaningless), and the API itself supplies the blank line wherever inserted content faces body text, so an `append` or `prepend` always lands as its own block and never merges into an existing paragraph. Heading lines, existing blank lines, and each document's spacing style are preserved as-is. See the [interactive docs](https://coddingtonbear.github.io/obsidian-local-rest-api/) for worked examples.
 
